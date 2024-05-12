@@ -1,12 +1,12 @@
 import io
 import subprocess
 import tempfile
-import adb_tool.adb_command as adb_command
-import adb_tool.adb_view_tree as adb_view_tree
-import adb_tool.ui_node as ui_node
+import adb_tool_py.adb_command as adb_command
+import adb_tool_py.adb_view_tree as adb_view_tree
+import adb_tool_py.ui_node as ui_node
 
 
-class AdbWrap:
+class AdbTool:
     def __init__(self, adb: adb_command.AdbCommand = adb_command.AdbCommand()):
         self.adb = adb
         self.adbv = adb_view_tree.AdbViewTree(adb)

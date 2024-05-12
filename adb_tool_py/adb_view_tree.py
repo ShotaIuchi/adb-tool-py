@@ -2,8 +2,8 @@ import chardet
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-import adb_tool.adb_command as adb_command
-import adb_tool.ui_node as ui_node
+import adb_tool_py.adb_command as adb_command
+import adb_tool_py.ui_node as ui_node
 
 
 DEVICE_FILE_PATH = '/sdcard/window_dump.xml'

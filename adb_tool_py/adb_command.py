@@ -1,7 +1,7 @@
 import subprocess
 from functools import singledispatchmethod
-import adb_tool.adb_device as adb_device
-import adb_tool.command as command
+import adb_tool_py.adb_device as adb_device
+import adb_tool_py.command as command
 
 
 class AdbCommand:

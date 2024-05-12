@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='adb_tool',
+    name='adb_tool_py',
     version='0.0.1',
     author='Shota Iuchi',
     author_email='shotaiuchi.develop@gmail.com',
-    description='adb_tool is a tool for Android Debug Bridge (adb).',
-    url='https://github.com/ShotaIuchi/adb_tool',
+    description='adb_tool_py is a tool for Android Debug Bridge (adb).',
+    url='https://github.com/ShotaIuchi/adb-tool-py',
     license='MIT',
     packages=find_packages(),
     python_requires='>=3.6',
