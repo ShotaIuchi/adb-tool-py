@@ -1,23 +1,25 @@
 import subprocess
 from functools import singledispatchmethod
-import adb_tool_py.adb_device as adb_device
+import adb_tool_py as adb_tool
 import adb_tool_py.command as command
 
 
 class AdbCommand:
-    device: adb_device.AdbDevice = None
+    device: adb_tool.AdbDevice = None
 
-    def __init__(self, adb: str = "adb"):
+    def __init__(self, adb: str = "adb", device: adb_tool.AdbDevice = None):
         self.adb = adb
+        self.set_device(device)
+
+    def set_device(self, device: adb_tool.AdbDevice) -> 'AdbCommand':
+        self.device = device
+        return self
 
     def _base_cmd(self) -> list:
-        if self.device is None:
+        if self.device is None or self.device.serial is None:
             return [self.adb]
         else:
             return [self.adb, '-s', self.device.serial]
-
-    def set_device(self, device: adb_device.AdbDevice):
-        self.device = device
 
     @singledispatchmethod
     def query(self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) -> subprocess.CompletedProcess:
@@ -29,8 +31,7 @@ class AdbCommand:
 
     @query.register
     def _(self, cmd: list, stdout=subprocess.PIPE, stderr=subprocess.PIPE) -> subprocess.CompletedProcess:
-        ret = command.command(*self._base_cmd(), *cmd,
-                              stdout=stdout, stderr=stderr)
+        ret = command.command(*self._base_cmd(), *cmd, stdout=stdout, stderr=stderr)
         if ret.returncode != 0:
             raise Exception(f"Error: {ret.stderr}")
         return ret

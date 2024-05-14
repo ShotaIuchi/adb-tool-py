@@ -11,9 +11,6 @@ class UINode:
     def add_child(self, child) -> None:
         self.children.append(child)
 
-    def __str__(self):
-        return f"UINode(class={self.node_class}, resource_id={self.resource_id}, text={self.text}, children={len(self.children)})"
-
     def tree(self, level: int = 0) -> str:
         ret = "  " * level + str(self) + "\n"
         for child in self.children:
@@ -27,19 +24,14 @@ class UINode:
         self.node_class = self.element.get('class', '')
         self.package = self.element.get('package', '')
         self.content_desc = self.element.get('content_desc', '')
-        self.checkable = self.element.get(
-            'checkable', 'false').lower() == 'true'
+        self.checkable = self.element.get('checkable', 'false').lower() == 'true'
         self.checked = self.element.get('checked', 'false').lower() == 'true'
-        self.clickable = self.element.get(
-            'clickable', 'false').lower() == 'true'
+        self.clickable = self.element.get('clickable', 'false').lower() == 'true'
         self.enabled = self.element.get('enabled', 'true').lower() == 'true'
-        self.focusable = self.element.get(
-            'focusable', 'false').lower() == 'true'
+        self.focusable = self.element.get('focusable', 'false').lower() == 'true'
         self.focused = self.element.get('focused', 'false').lower() == 'true'
-        self.scrollable = self.element.get(
-            'scrollable', 'false').lower() == 'true'
-        self.long_clickable = self.element.get(
-            'long_clickable', 'false').lower() == 'true'
+        self.scrollable = self.element.get('scrollable', 'false').lower() == 'true'
+        self.long_clickable = self.element.get('long_clickable', 'false').lower() == 'true'
         self.password = self.element.get('password', 'false').lower() == 'true'
         self.selected = self.element.get('selected', 'false').lower() == 'true'
         self.bounds = self._parse_bounds(self.element.get('bounds', ''))
@@ -54,3 +46,6 @@ class UINode:
         if match:
             return (int(match.group(1)), int(match.group(2)), int(match.group(3)), int(match.group(4)))
         return None
+
+    def __str__(self):
+        return f"UINode(class={self.node_class}, resource_id={self.resource_id}, text={self.text}, children={len(self.children)})"

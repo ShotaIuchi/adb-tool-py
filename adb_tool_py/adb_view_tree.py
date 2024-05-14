@@ -2,7 +2,7 @@ import chardet
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-import adb_tool_py.adb_command as adb_command
+import adb_tool_py as adb_tool
 import adb_tool_py.ui_node as ui_node
 
 
@@ -28,7 +28,7 @@ class AdbViewTree:
     content: str = None
     content_tree: ui_node.UINode = None
 
-    def __init__(self, adb: adb_command.AdbCommand = adb_command.AdbCommand()):
+    def __init__(self, adb: adb_tool.AdbCommand = adb_tool.AdbCommand()):
         self.adb = adb
 
     def capture(self) -> None:
@@ -68,8 +68,7 @@ class AdbViewTree:
         node = self.find_text(text, index, root_node, is_capture)
         if node is None:
             return False
-        ret = self.adb.query(
-            f'shell input tap {node.center[0]} {node.center[1]}')
+        ret = self.adb.query(f'shell input tap {node.center[0]} {node.center[1]}')
         return ret.returncode == 0
 
     def find_resource_id(self, resource_id: str, index: int = 0, root_node: ui_node.UINode = None, is_capture: bool = False) -> ui_node.UINode:
@@ -83,8 +82,7 @@ class AdbViewTree:
         node = self.find_resource_id(resource_id, index, root_node, is_capture)
         if node is None:
             return False
-        ret = self.adb.query(
-            f'shell input tap {node.center[0]} {node.center[1]}')
+        ret = self.adb.query(f'shell input tap {node.center[0]} {node.center[1]}')
         return ret.returncode == 0
 
     def find_node(self, attribute_name: str, search_text: str, index: int = 0, root_node: ui_node.UINode = None, is_capture: bool = False) -> ui_node.UINode:
