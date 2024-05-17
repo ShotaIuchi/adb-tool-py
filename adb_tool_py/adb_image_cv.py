@@ -1,3 +1,4 @@
+from typing import Optional
 import cv2
 import numpy as np
 import os
@@ -43,15 +44,71 @@ class AdbImageCV:
         except Exception as e:
             raise RuntimeError("Failed to set capture from image path: " + str(e))
 
-    def find_image(self, image_path: str, match_threshold: float = 0.99, merge_threshold: int = 10) -> list:
+    def check_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> bool:
+        """
+        Checks if the specified image is present on the screen.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to use, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :return: True if the image is found, False otherwise.
+        """
+        return self.find_image(image_path, index, is_capture, match_threshold, merge_threshold) is not None
+
+    def touch_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> bool:
+        """
+        Simulates a tap on the screen at the center of the specified image if found.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to use, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :raises ValueError: If the image is not found.
+        """
+        rect = self.find_image(image_path, index, is_capture, match_threshold, merge_threshold)
+
+        if rect is None:
+            return False
+
+        x = (rect[0] + rect[2]) // 2
+        y = (rect[1] + rect[3]) // 2
+        result = self.adb.query(f'shell input tap {x} {y}')
+        return result.returncode == 0
+
+    def find_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> Optional[tuple[int, int, int, int]]:
+        """
+        Finds the specified image on the screen and returns the rectangle of the match.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to return, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :return: The rectangle of the found image, or None if not found.
+        """
+        rects = self.find_images(image_path, is_capture, match_threshold, merge_threshold)
+
+        if len(rects) > index:
+            return rects[index]
+
+        return None
+
+    def find_images(self, image_path: str, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> list[tuple[int, int, int, int]]:
         """
         Finds instances of a specified image within the captured screen image.
 
         :param image_path: Path to the image file to search for.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
         :param match_threshold: Threshold for image matching, defaults to 0.99.
         :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
         :return: A list of rectangles where the image was found.
         """
+        if is_capture:
+            self.capture()
+
         if self.content is None:
             raise ValueError("Please run the capture method first.")
 
@@ -102,7 +159,7 @@ class AdbImageCV:
             except OSError as e:
                 print(f"Error deleting temporary file: {e.strerror}")
 
-    def _merge_rects(self, rects: list, threshold: int) -> list:
+    def _merge_rects(self, rects: list[tuple[int, int, int, int]], threshold: int) -> list[tuple[int, int, int, int]]:
         """
         Merges close rectangles to reduce redundancy.
 

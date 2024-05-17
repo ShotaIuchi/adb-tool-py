@@ -173,27 +173,29 @@ class AdbViewTree:
         :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.
         :return: The matching UINode.
         """
-        if is_capture:
-            self.capture()
 
-        if root_node is None:
-            root_node = self.content_tree
-
-        nodes = self.find_nodes(attribute_name, search_text, root_node)
+        nodes = self.find_nodes(attribute_name, search_text, root_node, is_capture)
         if index >= len(nodes):
             return None
 
         return nodes[index]
 
-    def find_nodes(self, attribute_name: str, search_text: str, root_node: ui_node.UINode) -> list[ui_node.UINode]:
+    def find_nodes(self, attribute_name: str, search_text: str, root_node: ui_node.UINode, is_capture: bool = False) -> list[ui_node.UINode]:
         """
         Recursively finds all nodes with the specified attribute.
 
         :param attribute_name: The attribute name to search by.
         :param search_text: The text to search for.
         :param root_node: The root node to start the search from.
+        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.
         :return: A list of matching UINodes.
         """
+        if is_capture:
+            self.capture()
+
+        if root_node is None:
+            root_node = self.content_tree
+
         nodes = []
 
         if getattr(root_node, attribute_name, None) == search_text:

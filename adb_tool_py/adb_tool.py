@@ -3,6 +3,8 @@ import os
 import subprocess
 import tempfile
 from typing import Optional
+
+import numpy as np
 import adb_tool_py as adb_tool
 import adb_tool_py.ui_node as ui_node
 
@@ -73,6 +75,7 @@ class AdbTool:
         if adb_command is None:
             self.adb = adb_tool.AdbCommand(adb, adb_tool.AdbDevice(serial))
         self.avt = adb_tool.AdbViewTree(self.adb)
+        self.aic = adb_tool.AdbImageCV(self.adb)
 
     def query(self, cmd: str, stdout=subprocess.PIPE, stderr=subprocess.PIPE) -> subprocess.CompletedProcess:
         """
@@ -129,11 +132,17 @@ class AdbTool:
         """
         return self.query(['logcat', '-d', *cmd.split(' ')])
 
-    def capture(self) -> None:
+    def capture_tree(self) -> None:
         """
         Captures the current UI hierarchy of the connected Android device.
         """
         self.avt.capture()
+
+    def capture_screenshot(self) -> None:
+        """
+        Captures the current screen of the connected Android device.
+        """
+        self.aic.capture()
 
     def content_tree(self) -> ui_node.UINode:
         """
@@ -142,6 +151,25 @@ class AdbTool:
         :return: The root UINode.
         """
         return self.avt.content_tree
+
+    def content_screen(self) -> np.ndarray:
+        """
+        Returns the captured screen as an OpenCV image.
+
+        :return: The captured screen as an OpenCV image.
+        """
+        return self.aic.content_cv
+
+    def find_texts(self, text: str, root_node: Optional[ui_node.UINode] = None, is_capture: bool = False) -> list[ui_node.UINode]:
+        """
+        Finds nodes by their text attribute.
+
+        :param text: The text to search for.
+        :param root_node: The root node to start the search from, defaults to None.
+        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.
+        :return: A list of matching UINodes.
+        """
+        return self.avt.find_texts(text, root_node, is_capture)
 
     def find_text(self, text: str, index: int = 0, root_node: Optional[ui_node.UINode] = None, is_capture: bool = False) -> Optional[ui_node.UINode]:
         """
@@ -214,3 +242,54 @@ class AdbTool:
         :return: True if the tap was successful, False otherwise.
         """
         return self.avt.touch_resource_id(resource_id, index, root_node, is_capture)
+
+    def find_images(self, image_path: str, match_threshold: float = 0.99, merge_threshold: int = 10) -> list[tuple[int, int, int, int]]:
+        """
+        Finds instances of a specified image within the captured screen image.
+
+        :param image_path: Path to the image file to search for.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :return: A list of rectangles where the image was found.
+        """
+        return self.aic.find_images(image_path, match_threshold, merge_threshold)
+
+    def find_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> Optional[tuple[int, int, int, int]]:
+        """
+        Finds the specified image on the screen and returns the rectangle of the match.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to return, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :return: The rectangle of the found image, or None if not found.
+        """
+        return self.aic.find_image(image_path, index, is_capture, match_threshold, merge_threshold)
+
+    def touch_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> bool:
+        """
+        Simulates a tap on the screen at the center of the specified image if found.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to use, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :raises ValueError: If the image is not found.
+        :return: True if the tap was successful, False otherwise.
+        """
+        return self.aic.touch_image(image_path, index, is_capture, match_threshold, merge_threshold)
+
+    def check_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> bool:
+        """
+        Checks if the specified image is present on the screen.
+
+        :param image_path: Path to the image file to search for.
+        :param index: Index of the matching image rectangle to use, defaults to 0.
+        :param is_capture: Whether to capture the screen before searching, defaults to False.
+        :param match_threshold: Threshold for image matching, defaults to 0.99.
+        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.
+        :return: True if the image is found, False otherwise.
+        """
+        return self.aic.check_image(image_path, index, is_capture, match_threshold, merge_threshold)
