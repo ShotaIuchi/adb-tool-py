@@ -18,6 +18,7 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'chardet',
+        'opencv-python',
     ],
     include_package_data=True
 )

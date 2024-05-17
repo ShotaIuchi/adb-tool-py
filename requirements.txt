@@ -1,3 +1,6 @@
-chardet==5.2.0
+chardet
+opencv-python
+numpy
+# development
 wheel
 -e ./
