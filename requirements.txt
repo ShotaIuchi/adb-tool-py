@@ -3,4 +3,5 @@ opencv-python
 numpy
 # development
 wheel
+sphinx
 -e ./
