@@ -1,8 +1,16 @@
+import os
+import sys
 from setuptools import setup, find_packages
+
+cwd = os.path.dirname(__file__)
+pwd = os.path.abspath(os.path.join(os.pardir, os.pardir))
+
+sys.path.append(pwd)
+from version import __version__
 
 setup(
     name='adb-tool-py',
-    version='0.1.0',
+    version=__version__,
     author='Shota Iuchi',
     author_email='shotaiuchi.develop@gmail.com',
     description='adb-tool-py is a tool for Android Debug Bridge (adb).',

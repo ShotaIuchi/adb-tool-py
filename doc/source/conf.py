@@ -4,7 +4,14 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../adb_tool_py'))
+
+cwd = os.path.dirname(__file__)
+pwd = os.path.abspath(os.path.join(os.pardir, os.pardir))
+
+sys.path.append(pwd)
+from version import __version__
+
+sys.path.insert(0, os.path.join(pwd, 'adb_tool_py'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -12,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../../adb_tool_py'))
 project = 'adb-tool-py'
 copyright = '2024, Shota Iuchi'
 author = 'Shota Iuchi'
-release = '0.1.0'
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
