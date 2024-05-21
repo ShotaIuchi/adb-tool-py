@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adb_tool &#8212; adb-tool-py 0.1.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=a58bc63e"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for adb_tool</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">adb_tool_py</span> <span class="k">as</span> <span class="nn">adb_tool</span>
+<span class="kn">import</span> <span class="nn">adb_tool_py.ui_node</span> <span class="k">as</span> <span class="nn">ui_node</span>
+
+
+<div class="viewcode-block" id="LogcatContext">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.LogcatContext">[docs]</a>
+<span class="k">class</span> <span class="nc">LogcatContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A context manager for handling logcat subprocesses and output files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subprocess</span><span class="p">:</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">,</span> <span class="n">is_delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the LogcatContext class.</span>
+
+<span class="sd">        :param subprocess: The logcat subprocess.</span>
+<span class="sd">        :param file: The file to which logcat output is written.</span>
+<span class="sd">        :param is_delete: Whether to delete the file upon exit, defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subprocess</span> <span class="o">=</span> <span class="n">subprocess</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_delete</span> <span class="o">=</span> <span class="n">is_delete</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Enters the context and returns the LogcatContext instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Exits the context, closing the file and terminating the subprocess.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LogcatContext.open">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.LogcatContext.open">[docs]</a>
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Opens the logcat output file.</span>
+
+<span class="sd">        :param mode: The mode in which to open the file, defaults to &#39;r&#39;.</span>
+<span class="sd">        :return: The opened file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LogcatContext.close">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.LogcatContext.close">[docs]</a>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Closes the logcat output file and terminates the subprocess.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_delete</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subprocess</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subprocess</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AdbTool">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool">[docs]</a>
+<span class="k">class</span> <span class="nc">AdbTool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to interact with an Android device using ADB commands and UI interactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adb_command</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">adb_tool</span><span class="o">.</span><span class="n">AdbCommand</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adb</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adb&quot;</span><span class="p">,</span> <span class="n">serial</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the AdbTool class.</span>
+
+<span class="sd">        :param adb_command: An instance of ADB command interface, defaults to None.</span>
+<span class="sd">        :param adb: Path to the ADB executable, defaults to &quot;adb&quot;.</span>
+<span class="sd">        :param serial: The serial number of the target device, defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adb</span> <span class="o">=</span> <span class="n">adb_command</span>
+        <span class="k">if</span> <span class="n">adb_command</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adb</span> <span class="o">=</span> <span class="n">adb_tool</span><span class="o">.</span><span class="n">AdbCommand</span><span class="p">(</span><span class="n">adb</span><span class="p">,</span> <span class="n">adb_tool</span><span class="o">.</span><span class="n">AdbDevice</span><span class="p">(</span><span class="n">serial</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avt</span> <span class="o">=</span> <span class="n">adb_tool</span><span class="o">.</span><span class="n">AdbViewTree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adb</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aic</span> <span class="o">=</span> <span class="n">adb_tool</span><span class="o">.</span><span class="n">AdbImageCV</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adb</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AdbTool.query">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.query">[docs]</a>
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CompletedProcess</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Executes an ADB command and waits for it to complete.</span>
+
+<span class="sd">        :param cmd: The command to execute.</span>
+<span class="sd">        :param stdout: Standard output pipe, defaults to subprocess.PIPE.</span>
+<span class="sd">        :param stderr: Standard error pipe, defaults to subprocess.PIPE.</span>
+<span class="sd">        :return: The completed process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adb</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.query_async">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.query_async">[docs]</a>
+    <span class="k">def</span> <span class="nf">query_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Executes an ADB command asynchronously.</span>
+
+<span class="sd">        :param cmd: The command to execute.</span>
+<span class="sd">        :param stdout: Standard output pipe, defaults to subprocess.PIPE.</span>
+<span class="sd">        :param stderr: Standard error pipe, defaults to subprocess.PIPE.</span>
+<span class="sd">        :return: The process object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adb</span><span class="o">.</span><span class="n">query_async</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.logcat">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.logcat">[docs]</a>
+    <span class="k">def</span> <span class="nf">logcat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LogcatContext</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Starts a logcat subprocess and returns a LogcatContext for managing it.</span>
+
+<span class="sd">        :param output_file: The file to which logcat output is written, defaults to None.</span>
+<span class="sd">        :param cmd: Additional logcat command options, defaults to an empty string.</span>
+<span class="sd">        :return: A LogcatContext instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_delete</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">output_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output_file</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">is_delete</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_async</span><span class="p">([</span><span class="s1">&#39;logcat&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">output_file</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">LogcatContext</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">is_delete</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.logcat_clear">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.logcat_clear">[docs]</a>
+    <span class="k">def</span> <span class="nf">logcat_clear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CompletedProcess</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clears the logcat logs on the device.</span>
+
+<span class="sd">        :param cmd: Additional logcat command options, defaults to an empty string.</span>
+<span class="sd">        :return: The completed process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="s1">&#39;logcat&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.logcat_dump">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.logcat_dump">[docs]</a>
+    <span class="k">def</span> <span class="nf">logcat_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CompletedProcess</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dumps the logcat logs from the device.</span>
+
+<span class="sd">        :param cmd: Additional logcat command options, defaults to an empty string.</span>
+<span class="sd">        :return: The completed process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="s1">&#39;logcat&#39;</span><span class="p">,</span> <span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.capture_tree">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.capture_tree">[docs]</a>
+    <span class="k">def</span> <span class="nf">capture_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Captures the current UI hierarchy of the connected Android device.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">capture</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.capture_screenshot">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.capture_screenshot">[docs]</a>
+    <span class="k">def</span> <span class="nf">capture_screenshot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Captures the current screen of the connected Android device.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">capture</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.content_tree">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.content_tree">[docs]</a>
+    <span class="k">def</span> <span class="nf">content_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the root node of the captured UI hierarchy.</span>
+
+<span class="sd">        :return: The root UINode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">content_tree</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.content_screen">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.content_screen">[docs]</a>
+    <span class="k">def</span> <span class="nf">content_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the captured screen as an OpenCV image.</span>
+
+<span class="sd">        :return: The captured screen as an OpenCV image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">content_cv</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.find_texts">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.find_texts">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds nodes by their text attribute.</span>
+
+<span class="sd">        :param text: The text to search for.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: A list of matching UINodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">find_texts</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.find_text">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.find_text">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds a node by its text attribute.</span>
+
+<span class="sd">        :param text: The text to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: The matching UINode, or None if not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">find_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.find_resource_id">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.find_resource_id">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds a node by its resource-id attribute.</span>
+
+<span class="sd">        :param resource_id: The resource-id to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: The matching UINode, or None if not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">find_resource_id</span><span class="p">(</span><span class="n">resource_id</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.check_text">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.check_text">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if a node with the specified text exists.</span>
+
+<span class="sd">        :param text: The text to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: True if the node exists, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">check_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.check_resource_id">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.check_resource_id">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if a node with the specified resource-id exists.</span>
+
+<span class="sd">        :param resource_id: The resource-id to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: True if the node exists, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">check_resource_id</span><span class="p">(</span><span class="n">resource_id</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.touch_text">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.touch_text">[docs]</a>
+    <span class="k">def</span> <span class="nf">touch_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulates a tap on the node with the specified text.</span>
+
+<span class="sd">        :param text: The text to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: True if the tap was successful, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">touch_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.touch_resource_id">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.touch_resource_id">[docs]</a>
+    <span class="k">def</span> <span class="nf">touch_resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">root_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ui_node</span><span class="o">.</span><span class="n">UINode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulates a tap on the node with the specified resource-id.</span>
+
+<span class="sd">        :param resource_id: The resource-id to search for.</span>
+<span class="sd">        :param index: The index of the matching node to return, defaults to 0.</span>
+<span class="sd">        :param root_node: The root node to start the search from, defaults to None.</span>
+<span class="sd">        :param is_capture: Whether to capture the UI hierarchy before searching, defaults to False.</span>
+<span class="sd">        :return: True if the tap was successful, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avt</span><span class="o">.</span><span class="n">touch_resource_id</span><span class="p">(</span><span class="n">resource_id</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">root_node</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.find_images">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.find_images">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds instances of a specified image within the captured screen image.</span>
+
+<span class="sd">        :param image_path: Path to the image file to search for.</span>
+<span class="sd">        :param match_threshold: Threshold for image matching, defaults to 0.99.</span>
+<span class="sd">        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.</span>
+<span class="sd">        :return: A list of rectangles where the image was found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">find_images</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.find_image">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.find_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds the specified image on the screen and returns the rectangle of the match.</span>
+
+<span class="sd">        :param image_path: Path to the image file to search for.</span>
+<span class="sd">        :param index: Index of the matching image rectangle to return, defaults to 0.</span>
+<span class="sd">        :param is_capture: Whether to capture the screen before searching, defaults to False.</span>
+<span class="sd">        :param match_threshold: Threshold for image matching, defaults to 0.99.</span>
+<span class="sd">        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.</span>
+<span class="sd">        :return: The rectangle of the found image, or None if not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">find_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.touch_image">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.touch_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">touch_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulates a tap on the screen at the center of the specified image if found.</span>
+
+<span class="sd">        :param image_path: Path to the image file to search for.</span>
+<span class="sd">        :param index: Index of the matching image rectangle to use, defaults to 0.</span>
+<span class="sd">        :param is_capture: Whether to capture the screen before searching, defaults to False.</span>
+<span class="sd">        :param match_threshold: Threshold for image matching, defaults to 0.99.</span>
+<span class="sd">        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.</span>
+<span class="sd">        :raises ValueError: If the image is not found.</span>
+<span class="sd">        :return: True if the tap was successful, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">touch_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdbTool.check_image">
+<a class="viewcode-back" href="../adb_tool.html#adb_tool.AdbTool.check_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the specified image is present on the screen.</span>
+
+<span class="sd">        :param image_path: Path to the image file to search for.</span>
+<span class="sd">        :param index: Index of the matching image rectangle to use, defaults to 0.</span>
+<span class="sd">        :param is_capture: Whether to capture the screen before searching, defaults to False.</span>
+<span class="sd">        :param match_threshold: Threshold for image matching, defaults to 0.99.</span>
+<span class="sd">        :param merge_threshold: Threshold for merging close rectangles, defaults to 10.</span>
+<span class="sd">        :return: True if the image is found, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aic</span><span class="o">.</span><span class="n">check_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">is_capture</span><span class="p">,</span> <span class="n">match_threshold</span><span class="p">,</span> <span class="n">merge_threshold</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">adb-tool-py</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">adb_tool_py</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Shota Iuchi.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
