@@ -1,2 +1,2 @@
-rm -rf ./doc/build/
-make -C doc html
+make -C docs_src clean
+make -C docs_src html
