@@ -77,6 +77,14 @@ class AdbTool:
         self.avt = adb_tool.AdbViewTree(self.adb)
         self.aic = adb_tool.AdbImageCV(self.adb)
 
+    def is_connected(self) -> bool:
+        """
+        Checks if the target device is connected.
+
+        :return: True if the device is connected, False otherwise.
+        """
+        return self.adb.is_connected()
+
     def query(self, cmd: str, stdout=subprocess.PIPE, stderr=subprocess.PIPE) -> subprocess.CompletedProcess:
         """
         Executes an ADB command and waits for it to complete.

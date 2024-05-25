@@ -30,6 +30,24 @@ class AdbCommand:
         self.device = device
         return self
 
+    def is_connected(self) -> bool:
+        """
+        Checks if the target device is connected.
+
+        :return: True if the device is connected, False otherwise.
+        """
+        result = self.query('devices')
+        lines = result.stdout.splitlines()
+        devices = [line for line in lines if line.strip() and not line.startswith('List of devices attached')]
+        device_id = self.device.serial
+        if device_id is None:
+            return len(devices) == 1
+        else:
+            for device in devices:
+                if device_id in device:
+                    return True
+            return False
+
     def _base_cmd(self) -> list:
         """
         Constructs the base ADB command with the target device.
