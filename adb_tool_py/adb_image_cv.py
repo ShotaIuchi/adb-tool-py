@@ -44,6 +44,21 @@ class AdbImageCV:
         except Exception as e:
             raise RuntimeError("Failed to set capture from image path: " + str(e))
 
+    def save_capture(self, image_path: str) -> None:
+        """
+        Saves the current capture to a specified image file path.
+
+        :param image_path: Path to save the image file.
+        """
+        if self.content is None:
+            raise ValueError("Please run the capture method first.")
+
+        try:
+            with open(image_path, 'wb') as f:
+                f.write(self.content)
+        except Exception as e:
+            raise RuntimeError("Failed to save capture to image path: " + str(e))
+
     def check_image(self, image_path: str, index: int = 0, is_capture: bool = False, match_threshold: float = 0.99, merge_threshold: int = 10) -> bool:
         """
         Checks if the specified image is present on the screen.

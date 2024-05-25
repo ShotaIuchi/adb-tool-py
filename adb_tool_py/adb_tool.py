@@ -152,6 +152,14 @@ class AdbTool:
         """
         self.aic.capture()
 
+    def save_screenshot(self, image_path: str) -> None:
+        """
+        Saves the current screen capture to a specified image file path.
+
+        :param image_path: Path to save the image file.
+        """
+        self.aic.save_capture(image_path)
+
     def content_tree(self) -> ui_node.UINode:
         """
         Returns the root node of the captured UI hierarchy.
